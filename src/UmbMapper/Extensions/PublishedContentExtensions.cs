@@ -40,10 +40,7 @@ namespace UmbMapper.Extensions
         /// </returns>
         public static IEnumerable<object> MapTo(this IEnumerable<IPublishedContent> content, Type type)
         {
-            IEnumerable<object> typedItems = content.Select(x => x.MapTo(type));
-
-            // We need to cast back here as nothing is strong typed anymore.
-            return (IEnumerable<object>)EnumerableInvocations.Cast(type, typedItems);
+            return MapperConfig.Default.Map(type, content);
         }
 
         /// <summary>
@@ -72,15 +69,7 @@ namespace UmbMapper.Extensions
                 throw new ArgumentNullException(nameof(content));
             }
 
-            IMapperConfig mapper;
-            MapperConfigRegistry.Mappers.TryGetValue(type, out mapper);
-
-            if (mapper == null)
-            {
-                throw new InvalidOperationException($"No mapper for the given type {type} has been registered.");
-            }
-
-            return mapper.Map(content);
+            return MapperConfig.Default.Map(type, content);
         }
     }
 }

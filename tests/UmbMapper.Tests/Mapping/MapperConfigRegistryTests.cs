@@ -11,8 +11,10 @@ namespace UmbMapper.Tests.Mapping
         [Fact]
         public void MapperConfigRegistryCanStoreMapper()
         {
-            MapperConfigRegistry.AddMapper(new PublishedItemMap());
-            Assert.True(MapperConfigRegistry.CurrentMappers().Any(m => m.MappedType == typeof(PublishedItem)));
+            var mapper = new MapperConfig();
+            mapper.
+            .AddMapper(new PublishedItemMap());
+            Assert.True(MapperConfig.CurrentMappers().Any(m => m.MappedType == typeof(PublishedItem)));
         }
 
         [Fact]

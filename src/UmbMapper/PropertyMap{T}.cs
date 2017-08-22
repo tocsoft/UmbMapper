@@ -26,12 +26,10 @@ namespace UmbMapper
         /// <param name="property">The property to map</param>
         public PropertyMap(PropertyInfo property)
         {
-            if (!property.CanWrite)
-            {
-                throw new InvalidOperationException($"Property {property} in class {typeof(T).Name} must be writable in order to be mapped");
-            }
-
             this.Info = new PropertyMapInfo(property);
+            this.Info.Lazy = this.Info.Property.ShouldAttemptLazyLoad();// defautl lazy loading if we can
+
+            this.Info.Recursive = this.Info.Property.ShouldAttemptRecursiveLoad();
         }
 
         /// <summary>
@@ -121,9 +119,9 @@ namespace UmbMapper
         /// Instructs the mapper to map the property recursively up the tree
         /// </summary>
         /// <returns>The <see cref="PropertyMap{T}"/></returns>
-        public PropertyMap<T> AsRecursive()
+        public PropertyMap<T> AsRecursive(bool recursive)
         {
-            this.Info.Recursive = true;
+            this.Info.Recursive = recursive;
             return this;
         }
 
@@ -139,6 +137,16 @@ namespace UmbMapper
             }
 
             this.Info.Lazy = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Instructs the mapper to not lazily map the property
+        /// </summary>
+        /// <returns>The <see cref="PropertyMap{T}"/></returns>
+        public PropertyMap<T> AsEagerLoad()
+        {
+            this.Info.Lazy = false;
             return this;
         }
 

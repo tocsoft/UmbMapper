@@ -29,6 +29,7 @@ namespace UmbMapper.PropertyMappers
             this.IsConvertableEnumerableType = this.PropertyType.IsConvertableEnumerableType();
             this.IsCastableEnumerableType = this.PropertyType.IsCastableEnumerableType();
             this.IsEnumerableOfKeyValueType = this.PropertyType.IsEnumerableOfKeyValueType();
+            this.Ignore = !property.CanWrite;
         }
 
         /// <summary>
@@ -78,6 +79,11 @@ namespace UmbMapper.PropertyMappers
         /// Gets a value indicating whether to lazily map the property
         /// </summary>
         public bool Lazy { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating whether to lazily map the property
+        /// </summary>
+        public bool Ignore { get; internal set; }
 
         /// <summary>
         /// Gets the default value

@@ -1,10 +1,10 @@
 ﻿namespace UmbMapper.Tests.Mapping.Models
 {
-    public class PublishedItemMapAll : MapperConfig<PublishedItem>
+    public class PublishedItemMapAll : ClassMap<PublishedItem>
     {
         public PublishedItemMapAll()
         {
-            this.MapAll();
+            this.AllProperties();
         }
     }
 }

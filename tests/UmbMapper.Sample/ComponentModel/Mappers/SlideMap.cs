@@ -11,15 +11,17 @@ namespace UmbMapper.Sample.ComponentModel.Mappers
     /// <summary>
     /// Configures mapping for the gallery slides page
     /// </summary>
-    public class SlideMap : MapperConfig<Slide>
+    public static class SlideMap
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SlideMap"/> class.
         /// </summary>
-        public SlideMap()
+        public static void Configure(MapperConfig config)
         {
-            this.AddMap(x => x.Image).SetMapper<UmbracoPickerPropertyMapper>().AsLazy();
-            this.AddMap(x => x.Description).AsLazy();
+            config.Model<Slide>(m =>
+            {
+                m.Property(x => x.Image).SetMapper<UmbracoPickerPropertyMapper>();
+            });
         }
     }
 }

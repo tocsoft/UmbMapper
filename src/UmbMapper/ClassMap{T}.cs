@@ -1,4 +1,4 @@
-﻿// <copyright file="MapperConfig{T}.cs" company="James Jackson-South">
+﻿// <copyright file="ClassMap{T}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -29,21 +29,25 @@ namespace UmbMapper
     /// Configures mapping of type properties to Umbraco properties
     /// </summary>
     /// <typeparam name="T">The type of object to map</typeparam>
-    public class MapperConfig<T> : IMapperConfig
+    public class ClassMap<T> : IClassMap
         where T : class, new()
     {
         private readonly FastPropertyAccessor propertyAccessor;
         private readonly List<PropertyMap<T>> maps;
+        private readonly MapperConfig config;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MapperConfig{T}"/> class.
+        /// Initializes a new instance of the <see cref="ClassMap{T}" /> class.
         /// </summary>
-        public MapperConfig()
+        /// <param name="config">The configuration.</param>
+        public ClassMap(MapperConfig config)
         {
+            this.config = config;
             Type type = typeof(T);
             this.MappedType = type;
             this.propertyAccessor = new FastPropertyAccessor(type);
             this.maps = new List<PropertyMap<T>>();
+            this.AllProperties();
         }
 
         /// <inheritdoc/>
@@ -55,11 +59,11 @@ namespace UmbMapper
         public IReadOnlyCollection<PropertyMap<T>> Mappings => this.maps;
 
         /// <summary>
-        /// Adds the map from the property to an equivalent Umbraco property
+        /// Get the mapping for the property.
         /// </summary>
         /// <param name="propertyExpression">The property to map</param>
         /// <returns>The <see cref="PropertyMap{T}"/></returns>
-        public PropertyMap<T> AddMap(Expression<Func<T, object>> propertyExpression)
+        public PropertyMap<T> Property(Expression<Func<T, object>> propertyExpression)
         {
             // The property access might be getting converted to object to match the func
             // If so, get the operand and see if that's a member expression
@@ -72,9 +76,16 @@ namespace UmbMapper
             }
 
             var map = new PropertyMap<T>(member.Member as PropertyInfo);
-            this.CheckDuplicateMappings(map);
-            this.maps.Add(map);
-            return map;
+
+            PropertyMap<T> finalMapping = this.maps.SingleOrDefault(x => x.Info.Property.Name == map.Info.Property.Name);
+
+            if (finalMapping == null)
+            {
+                finalMapping = map;
+                this.maps.Add(map);
+            }
+
+            return finalMapping;
         }
 
         /// <summary>
@@ -82,7 +93,7 @@ namespace UmbMapper
         /// </summary>
         /// <param name="propertyExpressions">The properties to map</param>
         /// <returns>The <see cref="IEnumerable{T}"/></returns>
-        public IEnumerable<PropertyMap<T>> AddMappings(params Expression<Func<T, object>>[] propertyExpressions)
+        public IEnumerable<PropertyMap<T>> Properties(params Expression<Func<T, object>>[] propertyExpressions)
         {
             if (propertyExpressions == null)
             {
@@ -92,48 +103,47 @@ namespace UmbMapper
             var mapsTemp = new List<PropertyMap<T>>();
             foreach (Expression<Func<T, object>> property in propertyExpressions)
             {
-                // The property access might be getting converted to object to match the func
-                // If so, get the operand and see if that's a member expression
-                MemberExpression member = property.Body as MemberExpression
-                                          ?? (property.Body as UnaryExpression)?.Operand as MemberExpression;
-
-                if (member == null)
-                {
-                    throw new ArgumentException("Action must be a member expression.");
-                }
-
-                var map = new PropertyMap<T>(member.Member as PropertyInfo);
-                this.CheckDuplicateMappings(map);
-                mapsTemp.Add(map);
-                this.maps.Add(map);
+                mapsTemp.Add(this.Property(property));
             }
 
-            return this.maps.Intersect(mapsTemp);
+            return mapsTemp;
         }
 
         /// <summary>
         /// Adds a map from each property in the class to an equivalent Umbraco property
         /// </summary>
         /// <returns>The <see cref="IEnumerable{T}"/></returns>
-        public IEnumerable<PropertyMap<T>> MapAll()
+        public IEnumerable<PropertyMap<T>> AllProperties()
         {
+            // no longet n
             foreach (PropertyInfo property in typeof(T).GetProperties(UmbMapperConstants.MappableFlags))
             {
-                var map = new PropertyMap<T>(property);
-                this.CheckDuplicateMappings(map);
-                this.maps.Add(map);
+                this.AddOrGetPropertyMapping(property);
             }
 
             return this.maps;
         }
 
         /// <inheritdoc/>
-        public object Map(IPublishedContent content)
+        object IClassMap.Map(IPublishedContent content)
+        {
+            return this.Map(content);
+        }
+
+        /// <summary>
+        /// Performs the mapping operation
+        /// </summary>
+        /// <param name="content">The published content</param>
+        /// <returns>
+        /// The value
+        /// </returns>
+        public T Map(IPublishedContent content)
         {
             object result = this.MappedType.GetInstance();
+            var maps = this.maps.Where(x => !x.Info.Ignore);
 
             // Gather any lazily mapped properties and assign the lazy mapping
-            IEnumerable<PropertyMap<T>> lazyMaps = this.maps.Where(m => m.Info.Lazy).ToArray();
+            IEnumerable<PropertyMap<T>> lazyMaps = maps.Where(m => m.Info.Lazy).ToArray();
             if (lazyMaps.Any())
             {
                 // A dictionary to store lazily invoked values.
@@ -141,7 +151,7 @@ namespace UmbMapper
                 foreach (PropertyMap<T> map in lazyMaps)
                 {
                     object localResult = result;
-                    lazyProperties.Add(map.Info.Property.Name, new Lazy<object>(() => MapProperty(map, content, this.propertyAccessor, localResult)));
+                    lazyProperties.Add(map.Info.Property.Name, new Lazy<object>(() => MapProperty(this.config, map, content, this.propertyAccessor, localResult)));
                 }
 
                 // Create a proxy instance to replace our object.
@@ -151,15 +161,15 @@ namespace UmbMapper
             }
 
             // Now map the non-lazy properties
-            foreach (PropertyMap<T> map in this.maps.Where(m => !m.Info.Lazy))
+            foreach (PropertyMap<T> map in maps.Where(m => !m.Info.Lazy))
             {
-                MapProperty(map, content, this.propertyAccessor, result);
+                MapProperty(this.config, map, content, this.propertyAccessor, result);
             }
 
-            return result;
+            return (T)result;
         }
 
-        private static object MapProperty(PropertyMap<T> map, IPublishedContent content, FastPropertyAccessor propertyAccessor, object result)
+        private static object MapProperty(MapperConfig config, PropertyMap<T> map, IPublishedContent content, FastPropertyAccessor propertyAccessor, object result)
         {
             // Users might want to use lazy loading with API controllers that do not inherit from UmBracoAPIController.
             // Certain mappers like Archtype require the context so we want to ensure it exists.
@@ -184,7 +194,7 @@ namespace UmbMapper
             {
                 PropertyMapInfo info = map.Info;
                 value = SantizeValue(value, info);
-                value = RecursivelyMap(value, info);
+                value = RecursivelyMap(config, value, info);
 
                 if (value != null)
                 {
@@ -195,7 +205,7 @@ namespace UmbMapper
             return value;
         }
 
-        private static object RecursivelyMap(object value, PropertyMapInfo info)
+        private static object RecursivelyMap(MapperConfig config, object value, PropertyMapInfo info)
         {
             if (!info.PropertyType.IsInstanceOfType(value))
             {
@@ -203,7 +213,7 @@ namespace UmbMapper
                 var content = value as IPublishedContent;
                 if (content != null && info.PropertyType.IsClass)
                 {
-                    return content.MapTo(info.PropertyType);
+                    return config.Map(info.PropertyType, content);
                 }
 
                 // If the property value is an IEnumerable<IPublishedContent>, then we can map it to the target type.
@@ -212,7 +222,7 @@ namespace UmbMapper
                     Type genericType = info.PropertyType.GetEnumerableType();
                     if (genericType != null && genericType.IsClass)
                     {
-                        return ((IEnumerable<IPublishedContent>)value).MapTo(genericType);
+                        return config.Map(genericType, (IEnumerable<IPublishedContent>)value);
                     }
                 }
             }
@@ -293,12 +303,16 @@ namespace UmbMapper
             }
         }
 
-        private void CheckDuplicateMappings(PropertyMap<T> map)
+        private PropertyMap<T> AddOrGetPropertyMapping(PropertyInfo info)
         {
-            if (this.maps.Any(x => x.Info.Property.Name == map.Info.Property.Name))
+            PropertyMap<T> found = this.maps.SingleOrDefault(x => x.Info.Property.Name == info.Name);
+            if (found == null)
             {
-                throw new InvalidOperationException($"Property '{map.Info.Property.Name}' in class '{typeof(T).Name}' has already added to the mapper.");
+                found = new PropertyMap<T>(info);
+                this.maps.Add(found);
             }
+
+            return found;
         }
     }
 }

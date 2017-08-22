@@ -48,5 +48,15 @@ namespace UmbMapper.Extensions
         {
             return source.IsVirtualAndOverridable();
         }
+
+        /// <summary>
+        /// Checks to see if the given property should attempt to recursively load
+        /// </summary>
+        /// <param name="source">The property to check</param>
+        /// <returns>True if a recursively load attempt should be made</returns>
+        public static bool ShouldAttemptRecursiveLoad(this PropertyInfo source)
+        {
+            return source.PropertyType.IsClass && !source.PropertyType.Namespace.StartsWith("System");
+        }
     }
 }

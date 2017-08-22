@@ -2,7 +2,7 @@
 
 namespace UmbMapper.Tests.Mapping.Models
 {
-    public class LazyPublishedItemMap : MapperConfig<LazyPublishedItem>
+    public class LazyPublishedItemMap : ClassMap<LazyPublishedItem>
     {
         public LazyPublishedItemMap()
         {

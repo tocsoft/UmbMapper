@@ -40,7 +40,7 @@ namespace UmbMapper.Tests.Mapping
             {
                 UmbracoContext.Current = null;
                 ApplicationContext.Current = null;
-                MapperConfigRegistry.Clear();
+                MapperConfig.Clear();
                 PublishedCachesResolver.Reset();
 
                 if (Resolution.IsFrozen)
@@ -136,8 +136,8 @@ namespace UmbMapper.Tests.Mapping
 
         private void InitMappers()
         {
-            MapperConfigRegistry.AddMapper(new PublishedItemMap());
-            MapperConfigRegistry.AddMapper(new LazyPublishedItemMap());
+            MapperConfig.AddMapper(new PublishedItemMap());
+            MapperConfig.AddMapper(new LazyPublishedItemMap());
         }
 
         public void Dispose()

@@ -11,26 +11,22 @@ namespace UmbMapper.Sample.ComponentModel.Mappers
     /// <summary>
     /// Configures mapping of published images
     /// </summary>
-    public class PublishedImageMap : MapperConfig<PublishedImage>
+    public static class PublishedImageMap
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PublishedImageMap"/> class.
         /// </summary>
-        public PublishedImageMap()
+        public static void Configure(MapperConfig config)
         {
-            this.AddMap(x => x.Id).AsLazy();
-            this.AddMap(x => x.Name).AsLazy();
-            this.AddMap(x => x.DocumentTypeAlias).AsLazy();
-            this.AddMap(x => x.Level).AsLazy();
-            this.AddMap(x => x.SortOrder).AsLazy();
-            this.AddMap(x => x.CreateDate).AsLazy();
-            this.AddMap(x => x.UpdateDate).AsLazy();
-            this.AddMap(x => x.FileName).SetAlias(Constants.Conventions.Media.File).AsLazy();
-            this.AddMap(x => x.Bytes).SetAlias(Constants.Conventions.Media.Bytes).AsLazy();
-            this.AddMap(x => x.Extension).SetAlias(Constants.Conventions.Media.Extension).AsLazy();
-            this.AddMap(x => x.Width).SetAlias(Constants.Conventions.Media.Width).AsLazy();
-            this.AddMap(x => x.Height).SetAlias(Constants.Conventions.Media.Height).AsLazy();
-            this.AddMap(x => x.Crops).SetAlias(Constants.Conventions.Media.File).AsLazy();
+            config.Model<PublishedImage>(m =>
+            {
+                m.Property(x => x.FileName).SetAlias(Constants.Conventions.Media.File);
+                m.Property(x => x.Bytes).SetAlias(Constants.Conventions.Media.Bytes);
+                m.Property(x => x.Extension).SetAlias(Constants.Conventions.Media.Extension);
+                m.Property(x => x.Width).SetAlias(Constants.Conventions.Media.Width);
+                m.Property(x => x.Height).SetAlias(Constants.Conventions.Media.Height);
+                m.Property(x => x.Crops).SetAlias(Constants.Conventions.Media.File);
+            });
         }
     }
 }
